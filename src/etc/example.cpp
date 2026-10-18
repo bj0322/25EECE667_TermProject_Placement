@@ -1,0 +1,186 @@
+///////////////////////////////////////////////////////////////////////////////
+// Creator: Minjae Kim of CSDL, POSTECH
+// Email:   kmj0824@postech.ac.kr
+// GitHub:  ApeachM
+//
+// BSD 3-Clause License
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+// * Redistributions of source code must retain the above copyright notice, this
+//   list of conditions and the following disclaimer.
+//
+// * Redistributions in binary form must reproduce the above copyright notice,
+//   this list of conditions and the following disclaimer in the documentation
+//   and/or other materials provided with the distribution.
+//
+// * Neither the name of the copyright holder nor the names of its
+//   contributors may be used to endorse or promote products derived from
+//   this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+// LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+///////////////////////////////////////////////////////////////////////////////
+#include <random>
+#include "Circuit.h"
+
+namespace Placer {
+
+void Circuit::placeExample() {
+  /*!
+   * This below code is example code for simple placement (random placement).
+   * You should implement your placer referring below code in `src/algorithm/place.cpp`.
+   * */
+
+  // Random place
+  // This is simple place example
+
+  //    mt19937 genX(1111);  // fix seed
+  //    mt19937 genY(2222);  // fix seed
+  mt19937 genX(random_device{}());
+  mt19937 genY(random_device{}());
+  uniform_int_distribution<int> disX(0, (int) die_->getWidth());
+  uniform_int_distribution<int> disY(0, (int) die_->getHeight());
+
+  for (Instance *instance : instance_pointers_) {
+    instance->setCoordinate(disX(genX), disY(genY));
+  }
+
+  cout << "RandomPlace Done." << endl;
+
+}
+
+
+// Alternative version that tries to avoid outside die placement
+/*
+void Circuit::placeExample() {
+  // Random placement that respects die boundary (lower-left inside die, upper-right inside die)
+  std::mt19937_64 gen(std::random_device{}());
+
+  const long long DW = static_cast<long long>(die_->getWidth());
+  const long long DH = static_cast<long long>(die_->getHeight());
+
+  // Optional keep-out margins (halo) from the edges; set to 0 if not needed
+  const long long haloX = 0;
+  const long long haloY = 0;
+
+  // If you have placement grid info, set these (>0). Otherwise they’ll be 1 (no snapping).
+  const long long siteW = 1;  // e.g., from LEF site width
+  const long long rowH  = 1;  // e.g., std-cell row height
+
+  for (Instance* inst : instance_pointers_) {
+    // Skip fixed/pads if your Instance API supports it.
+    // if (inst->isFixed() || inst->isPad()) continue;
+
+    const long long W = static_cast<long long>(inst->getWidth());
+    const long long H = static_cast<long long>(inst->getHeight());
+
+    // Handle pathological cases where a macro is >= die size
+    const long long maxX = std::max<long long>(0, DW - W - haloX);
+    const long long maxY = std::max<long long>(0, DH - H - haloY);
+
+    std::uniform_int_distribution<long long> disX(0, maxX);
+    std::uniform_int_distribution<long long> disY(0, maxY);
+
+    long long x = disX(gen);
+    long long y = disY(gen);
+
+    // Optional: snap to placement grid if known
+    if (siteW > 1) x = (x / siteW) * siteW;
+    if (rowH  > 1) y = (y / rowH) * rowH;
+
+    // Final safety clamp (prevents fencepost/rounding accidents)
+    x = std::min<long long>(x, DW - W);
+    y = std::min<long long>(y, DH - H);
+
+    inst->setCoordinate(static_cast<int>(x), static_cast<int>(y));
+  }
+
+  std::cout << "RandomPlace Done.\n";
+}
+*/
+
+void Circuit::howToUse() {
+  /*!
+   * This function is
+   * example for how to use variables in Circuit class
+   *
+   * You should refer this function and know how to use `Net`, `Instance`, `Pin`, etc variables
+   * */
+
+  for (int i = 0; i < 5; ++i) cout << endl;
+
+  // Access all Instances(cells) in the circuit
+  cout << "Access all Instances(cells) in the circuit" << endl;
+  for (Instance *instance : instance_pointers_) {
+    string cell_name = instance->getName();
+    cout << cell_name << " ";
+  }
+  cout << endl << endl;
+
+  // Access the 5th instance for demonstrate how to use the data structures
+  cout << "Access 5th cell in the circuit." << endl;
+  Instance *instance = instance_pointers_.at(4);
+  cout << "Cell name: " << instance->getName() << endl;
+  cout << "Cell height: " << instance->getHeight() << endl;
+  cout << "Cell width: " << instance->getWidth() << endl;
+  cout << "Cell area: " << instance->getArea() << endl;
+  cout << "Cell library name: " << instance->getLibName() << endl;
+  cout << "Cell coordinate before set coordinate: " << endl << "  "
+       << "x[" << instance->getCoordinate().first << "] "
+       << "y[" << instance->getCoordinate().second << "]" << endl;
+  // set coordinate of the cell as (100, 200)
+  instance->setCoordinate(100, 200);
+  cout << "Cell coordinate after set coordinate: " << endl << "  "
+       << "x[" << instance->getCoordinate().first << "] "
+       << "y[" << instance->getCoordinate().second << "]" << endl;
+
+  // Access pins in that instance
+  cout << "Access pins in that instance" << endl;
+  for (Pin *pin : instance->getPins()) {
+    cout << "\tPin coordinate: "
+         << "x[" << pin->getCoordinate().first << "] "
+         << "y[" << pin->getCoordinate().second << "]";
+    cout << "\t\tCorrespond instance name: " << pin->getInstance()->getName();
+    cout << "\t\tSignal Type: " << pin->getSignalType();
+    cout << "\t\tPin name:" << pin->getPinName() << endl;
+  }
+
+
+  // Grab any pin for demonstrate how to use the data structures
+  // here, I'll grab 3rd pin in the above selected cell
+  if (instance->getPins().at(2)) {
+    Pin *pin = instance->getPins().at(2);
+
+    // You can access the instance correspond to the pin
+    cout << "The name of instance which includes the pin: " << pin->getInstance()->getName() << endl << endl;
+    // You can access the net correspond to the pin
+    Net *net = pin->getNet();
+    cout << "Net name: " << net->getName() << endl;
+    // You can access the pins which is included in the net
+    for (Pin *connected_pin : net->getConnectedPins()) {
+      cout << "\tPin coordinate: "
+           << "x[" << connected_pin->getCoordinate().first << "] "
+           << "y[" << connected_pin->getCoordinate().second << "]";
+      if (connected_pin->getInstance())
+        cout << "\t\tCorrespond instance name: " << connected_pin->getInstance()->getName();
+      cout << "\t\tSignal Type: " << connected_pin->getSignalType();
+      cout << "\t\tPin name:" << connected_pin->getPinName() << endl;
+
+    }
+  }
+
+  // access to the pad (fixed pins in the circuit)
+
+}
+}
